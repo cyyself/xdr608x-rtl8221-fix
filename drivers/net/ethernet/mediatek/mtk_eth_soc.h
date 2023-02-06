@@ -1327,11 +1327,6 @@ int mtk_eth_setup_tc(struct net_device *dev, enum tc_setup_type type,
 		     void *type_data);
 void mtk_eth_set_dma_device(struct mtk_eth *eth, struct device *dma_dev);
 
-/* pcs */
-int mtk_pcs_setup_mode_force(struct mtk_pcs *mpcs,
-			     phy_interface_t interface);
-int mtk_pcs_setup_mode_an(struct mtk_pcs *mpcs, phy_interface_t interface);
-
 /* mmd */
 int mtk_mmd_read(struct mtk_eth *eth, int addr, int devad, u16 reg);
 void mtk_mmd_write(struct mtk_eth *eth, int addr, int devad, u16 reg,
@@ -1344,4 +1339,10 @@ static int mtk_mdio_write(struct mii_bus *bus, int phy_addr,
 static int _mtk_mdio_read(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg);
 static int _mtk_mdio_write(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg,
 			   u32 write_data);
+
+/* pcs */
+int mtk_pcs_setup_mode_force(struct mtk_pcs *mpcs,
+			     phy_interface_t interface);
+int mtk_pcs_setup_mode_an(struct mtk_pcs *mpcs, phy_interface_t interface);
+
 #endif /* MTK_ETH_H */
