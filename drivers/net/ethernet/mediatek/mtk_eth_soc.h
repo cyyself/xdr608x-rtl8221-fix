@@ -578,6 +578,11 @@
 
 #define MTK_MAC_FSM(x)		(0x1010C + ((x) * 0x100))
 
+/*MDIO control*/
+#define MII_MMD_ACC_CTL_REG             0x0d
+#define MII_MMD_ADDR_DATA_REG           0x0e
+#define MMD_OP_MODE_DATA BIT(14)
+
 struct mtk_rx_dma {
 	unsigned int rxd1;
 	unsigned int rxd2;
@@ -856,6 +861,13 @@ enum mkt_eth_capabilities {
 	MTK_ETH_PATH_GMAC2_SGMII_BIT,
 	MTK_ETH_PATH_GMAC2_GEPHY_BIT,
 	MTK_ETH_PATH_GDM1_ESW_BIT,
+};
+struct mtk_extphy_id
+{
+	u32 phy_id;
+	u32 phy_id_mask;
+	u32 is_c45;
+	int (*init)(struct mtk_eth *, int addr);
 };
 
 /* Supported hardware group on SoCs */
@@ -1320,5 +1332,16 @@ int mtk_pcs_setup_mode_force(struct mtk_pcs *mpcs,
 			     phy_interface_t interface);
 int mtk_pcs_setup_mode_an(struct mtk_pcs *mpcs, phy_interface_t interface);
 
+/* mmd */
+int mtk_mmd_read(struct mtk_eth *eth, int addr, int devad, u16 reg);
+void mtk_mmd_write(struct mtk_eth *eth, int addr, int devad, u16 reg,
+              u16 val);
 
+/* mdio */
+static int mtk_mdio_read(struct mii_bus *bus, int phy_addr, int phy_reg);
+static int mtk_mdio_write(struct mii_bus *bus, int phy_addr,
+			  int phy_reg, u16 val);
+static int _mtk_mdio_read(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg);
+static int _mtk_mdio_write(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg,
+			   u32 write_data);
 #endif /* MTK_ETH_H */

@@ -30,4 +30,12 @@ config NET_MEDIATEK_STAR_EMAC
 	  This driver supports the ethernet MAC IP first used on
 	  MediaTek MT85** SoCs.
 
+config NET_MEDIATEK_EXT_PHY_RTL822X
+	tristate "MediaTek SoC Gigabit Ethernet support"
+	depends on NET_MEDIATEK_SOC
+	select PHYLIB
+	default y
+	help
+	  This driver supports the gigabit ethernet rtl phy rtl822x
+
 endif #NET_VENDOR_MEDIATEK

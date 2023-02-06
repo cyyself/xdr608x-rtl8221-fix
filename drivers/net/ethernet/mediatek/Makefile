@@ -11,6 +11,7 @@ mtk_eth-$(CONFIG_NET_MEDIATEK_SOC_WED) += mtk_wed_debugfs.o
 endif
 obj-$(CONFIG_NET_MEDIATEK_SOC_WED) += mtk_wed_ops.o
 obj-$(CONFIG_NET_MEDIATEK_STAR_EMAC) += mtk_star_emac.o
+obj-$(CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X) += rtl822x/
 
 # FIXME: temporarily silence -Warray-bounds on non W=1+ builds
 ifndef KBUILD_EXTRA_WARN

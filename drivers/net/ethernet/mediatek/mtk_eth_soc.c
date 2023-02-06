@@ -27,6 +27,11 @@
 
 #include "mtk_eth_soc.h"
 #include "mtk_wed.h"
+#if defined (CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
+#include "rtl822x/rtl_adapter.h"
+#include "rtl822x/rtl8226_typedef.h"
+#include "rtl822x/nic_rtl8226b_init.h"
+#endif
 
 static int mtk_msg_level = -1;
 module_param_named(msg_level, mtk_msg_level, int, 0);
@@ -323,6 +328,202 @@ static int mtk_mdio_read(struct mii_bus *bus, int phy_addr, int phy_reg)
 	struct mtk_eth *eth = bus->priv;
 
 	return _mtk_mdio_read(eth, phy_addr, phy_reg);
+}
+
+
+static int mtk_mii_rw(struct mtk_eth *eth, int phy, int reg, u16 data,
+             u32 cmd, u32 st)
+{
+#define PHY_IAC                MTK_PHY_IAC
+#define PHY_ACS_ST            BIT(31)
+#define MDIO_REG_ADDR_S            25
+#define MDIO_REG_ADDR_M            0x3e000000
+#define MDIO_PHY_ADDR_S            20
+#define MDIO_PHY_ADDR_M            0x1f00000
+#define MDIO_CMD_S            18
+#define MDIO_CMD_M            0xc0000
+#define MDIO_ST_S            16
+#define MDIO_ST_M            0x30000
+#define MDIO_RW_DATA_S            0
+#define MDIO_RW_DATA_M            0xffff
+#define MDIO_CMD_ADDR            0
+#define MDIO_CMD_WRITE            1
+#define MDIO_CMD_READ            2
+#define MDIO_CMD_READ_C45        3
+#define MDIO_ST_C45 0
+#define MDIO_ST_C22 1
+    u32 val = 0;
+    int ret = 0;
+
+    if (mtk_mdio_busy_wait(eth))
+        return -1;
+
+    val = (st << MDIO_ST_S) |
+          ((cmd << MDIO_CMD_S) & MDIO_CMD_M) |
+          ((phy << MDIO_PHY_ADDR_S) & MDIO_PHY_ADDR_M) |
+          ((reg << MDIO_REG_ADDR_S) & MDIO_REG_ADDR_M);
+
+    if (cmd == MDIO_CMD_WRITE || cmd == MDIO_CMD_ADDR)
+        val |= data & MDIO_RW_DATA_M;
+
+    mtk_w32(eth, val | PHY_ACS_ST, PHY_IAC);
+
+    if (mtk_mdio_busy_wait(eth))
+        return -1;
+
+    if (cmd == MDIO_CMD_READ || cmd == MDIO_CMD_READ_C45) {
+        val = mtk_r32(eth, PHY_IAC);
+        ret = val & MDIO_RW_DATA_M;
+    }
+
+    return ret;
+}
+
+int mtk_mmd_read(struct mtk_eth *eth, int addr, int devad, u16 reg)
+{
+    int val;
+
+    mutex_lock(&eth->mii_bus->mdio_lock);
+    mtk_mii_rw(eth, addr, devad, reg, MDIO_CMD_ADDR, MDIO_ST_C45);
+    val = mtk_mii_rw(eth, addr, devad, 0, MDIO_CMD_READ_C45,
+                MDIO_ST_C45);
+    mutex_unlock(&eth->mii_bus->mdio_lock);
+
+    return val;
+}
+
+void mtk_mmd_write(struct mtk_eth *eth, int addr, int devad, u16 reg,
+              u16 val)
+{
+    mutex_lock(&eth->mii_bus->mdio_lock);
+    mtk_mii_rw(eth, addr, devad, reg, MDIO_CMD_ADDR, MDIO_ST_C45);
+    mtk_mii_rw(eth, addr, devad, val, MDIO_CMD_WRITE, MDIO_ST_C45);
+    mutex_unlock(&eth->mii_bus->mdio_lock);
+}
+
+u32 mtk_cl45_ind_read(struct mtk_eth *eth, u16 port, u16 devad, u16 reg, u16 *data)
+{
+        mutex_lock(&eth->mii_bus->mdio_lock);
+        _mtk_mdio_write(eth, port, MII_MMD_ACC_CTL_REG, devad);
+        _mtk_mdio_write(eth, port, MII_MMD_ADDR_DATA_REG, reg);
+        _mtk_mdio_write(eth, port, MII_MMD_ACC_CTL_REG, MMD_OP_MODE_DATA | devad);
+        *data = _mtk_mdio_read(eth, port, MII_MMD_ADDR_DATA_REG);
+        mutex_unlock(&eth->mii_bus->mdio_lock);
+        return 0;
+}
+u32 mtk_cl45_ind_write(struct mtk_eth *eth, u16 port, u16 devad, u16 reg, u16 data)
+{
+        mutex_lock(&eth->mii_bus->mdio_lock);
+        _mtk_mdio_write(eth, port, MII_MMD_ACC_CTL_REG, devad);
+        _mtk_mdio_write(eth, port, MII_MMD_ADDR_DATA_REG, reg);
+        _mtk_mdio_write(eth, port, MII_MMD_ACC_CTL_REG, MMD_OP_MODE_DATA | devad);
+        _mtk_mdio_write(eth, port, MII_MMD_ADDR_DATA_REG, data);
+        mutex_unlock(&eth->mii_bus->mdio_lock);
+        return 0;
+}
+
+static int mtk_mdio_busy_wait(struct mtk_eth *eth);
+
+static int rtl822x_init(struct mtk_eth *eth, int addr)
+{
+
+	init_g_eth(eth);
+	
+	u32 val = mtk_mmd_read(eth, addr, 30, 0x75F3);
+	val &= ~(1 << 0);
+	mtk_mmd_write(eth, addr, 30, 0x75F3, val);
+
+	val = mtk_mmd_read(eth, addr, 30, 0x697A);
+	val &= ~(0x3F);
+	val |= 0x2;
+	val |= (1 << 15);
+	mtk_mmd_write(eth, addr, 30, 0x697A, val);
+
+	msleep(500);
+
+	val = mtk_mmd_read(eth, addr, 7, 0);
+	val |= (1 << 9);
+	mtk_mmd_write(eth, addr, 7, 0, val);
+
+    msleep(500);
+
+	dev_info(eth->dev, "RTL822x init success!\n");
+
+	return 0;
+}
+
+static struct mtk_extphy_id extphy_tbl[] = {
+	{0x001CC840, 0x0fffffff0, 1, rtl822x_init},
+};
+
+static u32 get_cl22_phy_id(struct mtk_eth *eth, int addr)
+{
+	int phy_reg;
+	u32 phy_id = 0;
+
+	phy_reg = _mtk_mdio_read(eth, addr, MII_PHYSID1);
+	if (phy_reg < 0)
+		return 0;
+	phy_id = (phy_reg & 0xffff) << 16;
+
+	/* Grab the bits from PHYIR2, and put them in the lower half */
+	phy_reg = _mtk_mdio_read(eth, addr, MII_PHYSID2);
+	if (phy_reg < 0)
+		return 0;
+
+	phy_id |= (phy_reg & 0xffff);
+
+	return phy_id;
+}
+
+static u32 get_cl45_phy_id(struct mtk_eth *eth, int addr)
+{
+	u16 phy_reg;
+	u32 phy_id = 0;
+
+	mtk_cl45_ind_read(eth, addr, 1, MII_PHYSID1, &phy_reg);
+	if (phy_reg < 0)
+		return 0;
+	phy_id = (phy_reg & 0xffff) << 16;
+
+	/* Grab the bits from PHYIR2, and put them in the lower half */
+	mtk_cl45_ind_read(eth, addr, 1, MII_PHYSID2, &phy_reg);
+	if (phy_reg < 0)
+		return 0;
+
+	phy_id |= (phy_reg & 0xffff);
+
+	return phy_id;
+}
+
+static inline bool phy_id_is_match(u32 id, struct mtk_extphy_id *phy)
+{
+	return ((id & phy->phy_id_mask) == (phy->phy_id & phy->phy_id_mask));
+}
+
+static int extphy_init(struct mtk_eth *eth, int addr)
+{
+	int i;
+	u32 phy_id;
+	struct mtk_extphy_id *extphy;
+
+	for (i = 0; i < ARRAY_SIZE(extphy_tbl); i++)
+	{
+		extphy = &extphy_tbl[i];
+		if (extphy->is_c45)
+		{
+			phy_id = get_cl45_phy_id(eth, addr);
+		}
+		else
+		{
+			phy_id = get_cl22_phy_id(eth, addr);
+		}
+
+		if (phy_id_is_match(phy_id, extphy))
+			extphy->init(eth, addr);
+	}
+
+	return 0;
 }
 
 static int mt7621_gmac0_rgmii_adjust(struct mtk_eth *eth,
@@ -4669,6 +4870,11 @@ static int mtk_probe(struct platform_device *pdev)
 	struct mtk_eth *eth;
 	int err, i;
 
+#if defined(CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
+	HANDLE hDevice = {0,0};
+	static int ext_init = 0;
+#endif
+
 	eth = devm_kzalloc(&pdev->dev, sizeof(*eth), GFP_KERNEL);
 	if (!eth)
 		return -ENOMEM;
@@ -4902,6 +5108,28 @@ static int mtk_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, eth);
 	schedule_delayed_work(&eth->reset.monitor_work,
 			      MTK_DMA_MONITOR_TIMEOUT);
+
+#if 0
+	for_each_child_of_node(pdev->dev.of_node, port_np)
+	{
+		u32 addr = 0;
+		if (!of_device_is_compatible(port_np, "ext-phy"))
+			continue;
+		if (!of_device_is_available(port_np))
+			continue;
+		if (of_property_read_u32(port_np, "reg", &addr))
+			continue;
+		extphy_init(eth, addr);
+	}
+#endif
+#if defined (CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
+    if (!ext_init)
+    {
+        extphy_init(eth, 7);
+        Rtl8226b_phy_init(hDevice, NULL, 1);
+        ext_init = 1;
+    }
+#endif
 
 	return 0;
 
