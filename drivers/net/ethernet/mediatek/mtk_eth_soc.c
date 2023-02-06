@@ -226,7 +226,7 @@ static int mtk_mdio_busy_wait(struct mtk_eth *eth)
 	return -ETIMEDOUT;
 }
 
-static int _mtk_mdio_write(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg,
+int _mtk_mdio_write(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg,
 			   u32 write_data)
 {
 	int ret;
@@ -272,7 +272,7 @@ static int _mtk_mdio_write(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg,
 	return 0;
 }
 
-static int _mtk_mdio_read(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg)
+int _mtk_mdio_read(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg)
 {
 	int ret;
 
@@ -315,7 +315,7 @@ static int _mtk_mdio_read(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg)
 	return mtk_r32(eth, MTK_PHY_IAC) & PHY_IAC_DATA_MASK;
 }
 
-static int mtk_mdio_write(struct mii_bus *bus, int phy_addr,
+int mtk_mdio_write(struct mii_bus *bus, int phy_addr,
 			  int phy_reg, u16 val)
 {
 	struct mtk_eth *eth = bus->priv;
@@ -323,7 +323,7 @@ static int mtk_mdio_write(struct mii_bus *bus, int phy_addr,
 	return _mtk_mdio_write(eth, phy_addr, phy_reg, val);
 }
 
-static int mtk_mdio_read(struct mii_bus *bus, int phy_addr, int phy_reg)
+int mtk_mdio_read(struct mii_bus *bus, int phy_addr, int phy_reg)
 {
 	struct mtk_eth *eth = bus->priv;
 
@@ -427,9 +427,11 @@ static int mtk_mdio_busy_wait(struct mtk_eth *eth);
 static int rtl822x_init(struct mtk_eth *eth, int addr)
 {
 #if defined(CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
-	init_g_eth(eth);
+	u32 val;
 
-	u32 val = mtk_mmd_read(eth, addr, 30, 0x75F3);
+	init_g_eth(eth);
+	
+	val = mtk_mmd_read(eth, addr, 30, 0x75F3);
 	val &= ~(1 << 0);
 	mtk_mmd_write(eth, addr, 30, 0x75F3, val);
 

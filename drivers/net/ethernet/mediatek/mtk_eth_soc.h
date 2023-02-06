@@ -1333,11 +1333,11 @@ void mtk_mmd_write(struct mtk_eth *eth, int addr, int devad, u16 reg,
               u16 val);
 
 /* mdio */
-static int mtk_mdio_read(struct mii_bus *bus, int phy_addr, int phy_reg);
-static int mtk_mdio_write(struct mii_bus *bus, int phy_addr,
+int mtk_mdio_read(struct mii_bus *bus, int phy_addr, int phy_reg);
+int mtk_mdio_write(struct mii_bus *bus, int phy_addr,
 			  int phy_reg, u16 val);
-static int _mtk_mdio_read(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg);
-static int _mtk_mdio_write(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg,
+int _mtk_mdio_read(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg);
+int _mtk_mdio_write(struct mtk_eth *eth, u32 phy_addr, u32 phy_reg,
 			   u32 write_data);
 
 /* pcs */
