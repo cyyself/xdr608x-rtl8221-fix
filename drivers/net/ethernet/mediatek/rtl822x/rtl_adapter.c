@@ -20,33 +20,23 @@
 #include "rtl_adapter.h"
 #include "rtl8226_typedef.h"
 
-struct mtk_eth *g_eth;
-
-void init_g_eth(struct mtk_eth *g_eth_new) {
-    g_eth = g_eth_new;
-}
-
 bool MmdPhyWrite(HANDLE unit, uint16_t devad, uint16_t addr, uint16_t value)
 {
-    struct mtk_eth *eth = g_eth;
+    struct mtk_eth *eth = unit.eth;
     if (eth != NULL)
     {
-        mtk_mmd_write(eth, 7, devad, addr, value);
+        mtk_mmd_write(eth, unit.addr, devad, addr, value);
     }
-    phy_osal_printf("..\b..");
-
     return TRUE;
 }
 
 bool MmdPhyRead(HANDLE unit, uint16_t devad, uint16_t addr, uint16_t *value)
 {
-    struct mtk_eth *eth = g_eth;
+    struct mtk_eth *eth = unit.eth;
     if (eth != NULL)
     {
-        int val = mtk_mmd_read(eth, 7, devad, addr);
+        int val = mtk_mmd_read(eth, unit.addr, devad, addr);
         *value = (uint16_t)val;
     }
-    phy_osal_printf("..\b..");
-
     return TRUE;
 }

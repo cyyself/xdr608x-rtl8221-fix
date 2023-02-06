@@ -428,8 +428,6 @@ static int rtl822x_init(struct mtk_eth *eth, int addr)
 {
 #if defined(CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
 	u32 val;
-
-	init_g_eth(eth);
 	
 	val = mtk_mmd_read(eth, addr, 30, 0x75F3);
 	val &= ~(1 << 0);
@@ -450,6 +448,8 @@ static int rtl822x_init(struct mtk_eth *eth, int addr)
     msleep(500);
 
 	dev_info(eth->dev, "RTL822x init success!\n");
+
+	Rtl8226b_phy_init((HANDLE){eth, addr}, NULL, 1);
 
 	return 0;
 #else
@@ -4877,7 +4877,6 @@ static int mtk_probe(struct platform_device *pdev)
 	int err, i;
 
 #if defined(CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
-	HANDLE hDevice = {0,0};
 	static int ext_init = 0;
 #endif
 
@@ -5131,8 +5130,9 @@ static int mtk_probe(struct platform_device *pdev)
 #if defined (CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
     if (!ext_init)
     {
-        extphy_init(eth, 7);
-        Rtl8226b_phy_init(hDevice, NULL, 1);
+		// For TP-Link XDR6086 and XDR6088, we have two RTL822X at reg 5 and reg 7 respectively.
+        extphy_init(eth, 5);
+		extphy_init(eth, 7);
         ext_init = 1;
     }
 #endif

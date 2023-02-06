@@ -37,7 +37,4 @@
 #define phy_osal_printf printf
 #define osal_printf printf
 #endif
-
-void init_g_eth(struct mtk_eth *g_eth_new);
-
 #endif

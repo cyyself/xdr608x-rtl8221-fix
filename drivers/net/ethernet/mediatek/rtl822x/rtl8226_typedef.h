@@ -44,8 +44,8 @@
 
 
 typedef struct {
-    uint32      unit;
-    uint32      port;
+    struct mtk_eth *eth;
+    int addr;
 } HANDLE;
 
 #define BOOLEAN         bool
