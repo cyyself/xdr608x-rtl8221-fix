@@ -426,9 +426,9 @@ static int mtk_mdio_busy_wait(struct mtk_eth *eth);
 
 static int rtl822x_init(struct mtk_eth *eth, int addr)
 {
-
+#if defined(CONFIG_NET_MEDIATEK_EXT_PHY_RTL822X)
 	init_g_eth(eth);
-	
+
 	u32 val = mtk_mmd_read(eth, addr, 30, 0x75F3);
 	val &= ~(1 << 0);
 	mtk_mmd_write(eth, addr, 30, 0x75F3, val);
@@ -450,6 +450,10 @@ static int rtl822x_init(struct mtk_eth *eth, int addr)
 	dev_info(eth->dev, "RTL822x init success!\n");
 
 	return 0;
+#else
+	dev_info(eth->dev, "RTL822x init failed!\n");
+	return 1;
+#endif
 }
 
 static struct mtk_extphy_id extphy_tbl[] = {

@@ -18,6 +18,7 @@ config NET_MEDIATEK_SOC
 	select DIMLIB
 	select PAGE_POOL
 	select PAGE_POOL_STATS
+	select NET_MEDIATEK_EXT_PHY_RTL822X
 	help
 	  This driver supports the gigabit ethernet MACs in the
 	  MediaTek SoC family.
@@ -31,10 +32,9 @@ config NET_MEDIATEK_STAR_EMAC
 	  MediaTek MT85** SoCs.
 
 config NET_MEDIATEK_EXT_PHY_RTL822X
-	tristate "MediaTek SoC Gigabit Ethernet support"
+	tristate "MediaTek SOC PHY RTL822X"
 	depends on NET_MEDIATEK_SOC
 	select PHYLIB
-	default y
 	help
 	  This driver supports the gigabit ethernet rtl phy rtl822x
 
